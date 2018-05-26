@@ -7,9 +7,11 @@
 * set relative file import path to current directory (using standard SAS trick);
 X "cd ""%substr(%sysget(SAS_EXECFILEPATH),1,%eval(%length(%sysget(SAS_EXECFILEPATH))-%length(%sysget(SAS_EXECFILENAME))))""";
 
-
 * load external file that will generate final analytic file;
 %include '.\STAT6863-01_s18-team-3_data_preparation.sas';
+
+*create aggregate data set from analytic fileto answer research questions;
+
 
 
 *******************************************************************************;
@@ -23,21 +25,52 @@ Rationale: This should help identify trends in hospitalization for patients
 with certain chronic conditions.
 
 Note: This compares the variable "Chronic Condition: RA/OA" in 
-Master_Beneficiary_Summary_2010.csv to "Inpatient admission date" in 
+Master_Beneficiary_Summary_2010.csv to "Clm_ID" in 
 Master_Inpatient_Claim_2010.csv.
 
 Limitations: This question assumes that each admission is logged individually
 as referenced by claim ID. This may not be acccurate.
 ;
 
+PROC SORT DATA= contenr2010_analytic_file;
+    by 
+        BENE_ID;
+run;
+
+PROC SQL;
+    create table Total_Pmt_raw AS
+        select
+            Bene_ID
+	   ,COUNT(OP_Claim) AS OP_Num_Clm
+	   ,COUNT(IP_Claim) AS IP_Num_Clm
+	   ,SUM(IP_PMT_AMT) AS IPTot_Pmt
+	   ,SUM(OP_PMT_AMT) AS OPTot_Pmt
+	   ,RA_OA_Status
+	   ,COPD_Status
+        from
+            contenr2010_analytic_file
+       group by 
+            BENE_ID;
+quit;
+
+proc sort
+        nodupkey
+        data=Total_Pmt_raw
+        out=Total_Pmt
+    ;
+    by
+        Bene_ID and OP_Num_Clm and IP_Num_Clm
+    ;
+run;
+
 proc sql outobs=10;
     select
-        BENE_ID
+        Bene_ID
+        IP_Num_Clm
+        IPTot_Pmt
         RA_OA_Status
-        CLM_ID
-	InP_PMT_AMT
     from
-        Mbsf_AB_2010_and_Ip2010line_v2
+        Total_pmt
     order by
         BENE_ID
     ;
@@ -61,14 +94,44 @@ Master_Inpatient_Claim_2010.csv.
 Limitations: No limitations identified during exploratory steps.
 ;
 
+PROC SORT DATA= contenr2010_analytic_file;
+    by 
+        BENE_ID;
+run;
+
+PROC SQL;
+    create table Total_Pmt_raw AS
+        select
+            Bene_ID
+	   ,COUNT(OP_Claim) AS OP_Num_Clm
+	   ,COUNT(IP_Claim) AS IP_Num_Clm
+	   ,SUM(IP_PMT_AMT) AS IPTot_Pmt
+	   ,SUM(OP_PMT_AMT) AS OPTot_Pmt
+	   ,RA_OA_Status
+	   ,COPD_Status
+        from
+            contenr2010_analytic_file
+       group by 
+            BENE_ID;
+quit;
+
+proc sort
+        nodupkey
+        data=Total_Pmt_raw
+        out=Total_Pmt
+    ;
+    by
+        Bene_ID and OP_Num_Clm and IP_Num_Clm
+    ;
+run;
 proc sql outobs=10;
     select
-        BENE_ID
+        Bene_ID
+        IP_Num_Clm
+        IPTot_Pmt
         COPD_Status
-        CLM_ID
-	InP_PMT_AMT
     from
-        Mbsf_AB_2010_and_Ip2010line_v2
+        Total_pmt
     order by
         BENE_ID
     ;
@@ -91,15 +154,44 @@ Master_Outpatient_Claim_1_2010.csv.
 
 Limitations: No limitations identified during exploratory steps.
 ;
+PROC SORT DATA= contenr2010_analytic_file;
+    by 
+        BENE_ID;
+run;
 
+PROC SQL;
+    create table Total_Pmt_raw AS
+        select
+            Bene_ID
+	   ,COUNT(OP_Claim) AS OP_Num_Clm
+	   ,COUNT(IP_Claim) AS IP_Num_Clm
+	   ,SUM(IP_PMT_AMT) AS IPTot_Pmt
+	   ,SUM(OP_PMT_AMT) AS OPTot_Pmt
+	   ,RA_OA_Status
+	   ,COPD_Status
+        from
+            contenr2010_analytic_file
+       group by 
+            BENE_ID;
+quit;
+
+proc sort
+        nodupkey
+        data=Total_Pmt_raw
+        out=Total_Pmt
+    ;
+    by
+        Bene_ID and OP_Num_Clm and IP_Num_Clm
+    ;
+run;
 proc sql outobs=10;
     select
-        BENE_ID
-        COPD_Status
-        CLM_ID
-	OP_PMT_AMT
+        Bene_ID
+        OP_Num_Clm
+        OPTot_Pmt
+        RA_OA_Status
     from
-        Mbsf_AB_2010_and_Op2010line_v2
+        Total_pmt
     order by
         BENE_ID
     ;
@@ -107,20 +199,20 @@ quit;
 
 *Data Exploration;
 
-title "Inspect Inpatient Claim Payment Amount in Ip2010line";
+title "Inspect Inpatient Claim Payment Amount in Total_pmt";
 
 * check for distribution of IP Claim Payments to ensure sufficient info to
 answer research questions;
 
 proc sql;
     select
-         min(PMT_AMT) as min
-        ,max(PMT_AMT) as max
-        ,mean(PMT_AMT) as mean
-        ,median(PMT_AMT) as median
-        ,nmiss(PMT_AMT) as missing
+         min(IPTot_Pmt) as min
+        ,max(IPTot_Pmt) as max
+        ,mean(IPTot_Pmt) as mean
+        ,median(IPTot_Pmt) as median
+        ,nmiss(IPTot_Pmt) as missing
     from
-        Ip2010line
+         Total_pmt
     ;
 quit;
 title;
@@ -132,13 +224,13 @@ answer research questions;
 
 proc sql;
     select
-         min(PMT_AMT) as min
-        ,max(PMT_AMT) as max
-        ,mean(PMT_AMT) as mean
-        ,median(PMT_AMT) as median
-        ,nmiss(PMT_AMT) as missing
+         min(OPTot_Pmt) as min
+        ,max(OPTot_Pmt) as max
+        ,mean(OPTot_Pmt) as mean
+        ,median(OPTot_Pmt) as median
+        ,nmiss(OPTot_Pmt) as missing
     from
-        Op2010claim
+         Total_pmt
     ;
 quit;
 title;
