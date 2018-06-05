@@ -1,4 +1,3 @@
-
 *******************************************************************************;
 **************** 80-character banner for column width reference ***************;
 * (set window width to banner width to calibrate line length to 80 characters *;
@@ -37,8 +36,8 @@ Master_Inpatient_Claim_2010.csv.
 Limitations: This question assumes that each admission is logged individually
 as referenced by claim ID. This may not be acccurate.
 
-Methodology: Create a 2x2 table with COPD_Status versus number of inpatient claims
-and use proc freq to evaluate independence of those variables.
+Methodology: Use proc freq to evaluate independence of COPD_Status versus 
+number of inpatient claims.
 
 Follow-up Steps: Further investigate by including other possible covariates and/or
 class variables in the analysis to determine if there are other contributing
@@ -96,7 +95,7 @@ Master_Inpatient_Claim_2010.csv.
 Limitations: No limitations identified during exploratory steps.
 
 Methodology: Use proc univariate to further explore the apparent lack
-of difference in claim amounts for inpatient stays based on COPD status
+of difference in claim amounts for inpatient stays based on COPD status.
 
 Follow-up Steps: A possible follow-up to this approach could use formal 
 inferential methods to compare mean and/or median values for each group 
@@ -134,7 +133,7 @@ footnote;
 *******************************************************************************;
 
 title1 justify=left
-'Research Question: Of patients that have made outpatient claims, is there a difference in claim amounts for patients with COPD versus patients that do not have COPD?'
+'Research Question: For patients that have made outpatient claims, is there a difference in claim amounts for patients with COPD versus patients that do not have COPD?'
 ;
 
 title2 justify=left
@@ -154,6 +153,13 @@ Master_Beneficiary_Summary_2010.csv to "Claim Payment Amount" in
 Master_Outpatient_Claim_1_2010.csv.
 
 Limitations: No limitations identified during exploratory steps.
+
+Methodology: Use proc report to explore differences in claim amounts
+for inpatient stays based on COPD status
+
+Follow-up Steps: A possible follow-up to this approach could use formal 
+inferential methods to compare mean and/or median values for each group 
+to provide evidence of a significant difference in claim amounts.
 ;
 
 proc sql;
@@ -166,22 +172,11 @@ proc sql;
         from
             contenr2010_analytic_file
         group by 
-            BENE_ID
+            BENE_ID, COPD_Status      
 	having
 	    SUM(OP_PMT_AMT) >0
 ;
 quit;
-
-*Sort by COPD_Status;
-
-proc sort
-    data=COPD_OPTotal_Pmt_raw 
-    out=COPD_OPTotal_Pmt 
-    ;
-    by
-    COPD_Status
-    ;
-run;   
 
 proc report data= COPD_OPTotal_Pmt nowd headline headskip;	
     column (Min Max Mean Median),OPTot_Pmt;	
